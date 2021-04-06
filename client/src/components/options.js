@@ -4,7 +4,7 @@ import { SocketContext } from '../socketContext';
 
 
 const Options = ({ children }) => {
-  const {me, callAccepted, name, setName, callEnded, leaveCall, callUser} = useContext(SocketContext)
+  const {me, callAccepted, name, setName, callEnded, leaveCall, callUser, shareScreen} = useContext(SocketContext)
   const [idToCall, setIdCall] = useState('')
 
   const handleChange = (e) =>  {
@@ -38,6 +38,13 @@ const Options = ({ children }) => {
           </div>
         </form>
       {children}
+
+      <div>
+        <button onClick={(e) => {
+          e.preventDefault()
+          shareScreen()
+        }}>Share screen</button>
+      </div>
     </div>
   );
 }

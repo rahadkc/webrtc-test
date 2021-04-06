@@ -15,6 +15,7 @@ const  ContextProvider = ({ children }) => {
     const [call, setCall] = useState({});
     const [callAccepted, setCallAccepted] = useState(false);
     const [callEnded, setCallEnded] = useState(false);
+    const [currentPeer, setCurrentPeer] = useState(null);
     console.log('me :>> ', me);
 
     const myVideo = useRef(null)
@@ -22,10 +23,15 @@ const  ContextProvider = ({ children }) => {
     const connectionRef = useRef(null)
 
     useEffect(() => {
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then((currentStreamer) => {
-            setStream(currentStreamer)
-            myVideo.current.srcObject = currentStreamer
+        navigator.mediaDevices.getUserMedia({ video: true, audio: {
+            sampleSize: 16,
+            channelCount: 2,
+            echoCancellation: true,
+            noiseSuppression: true
+        } })
+        .then((currentStream) => {
+            setStream(currentStream)
+            myVideo.current.srcObject = currentStream
         }) 
 
         socket.on('me', (id) => setMe(id))
@@ -34,7 +40,52 @@ const  ContextProvider = ({ children }) => {
             setCall({ isReceivedCall: true, from, name: callerName, signal })
         })
 
+
     }, []);
+
+    // const handleShare  = (stream) => {
+    //     let videoTrack = stream.getVideoTracks()[0]
+    //     let sender = currentPeer.getSender().find((s) => {
+    //         return s.track.kind = videoTrack.kind
+    //     })
+
+    //     videoTrack.onended = () => {
+    //         let videoTrack = stream.getVideoTracks()[0]
+    //         let sender = currentPeer.getSender().find((s) => {
+    //             return s.track.kind = videoTrack.kind
+    //         })   
+    //         sender.replaceTrack(videoTrack)
+    //     }
+    //     sender.replaceTrack(videoTrack)
+    // }
+
+    const shareScreen = () => {
+        navigator.mediaDevices.getDisplayMedia({
+            video: {
+                cursor: 'always'
+            },
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true
+            }
+        }).then((stream) => {
+            let videoTrack = stream.getVideoTracks()[0]
+            let sender = currentPeer.getSender().find((s) => {
+                return s.track.kind = videoTrack.kind
+            })
+
+            videoTrack.onended = () => {
+                let videoTrack = stream.getVideoTracks()[0]
+                let sender = currentPeer.getSender().find((s) => {
+                    return s.track.kind = videoTrack.kind
+                })   
+                sender.replaceTrack(videoTrack)
+            }
+            sender.replaceTrack(videoTrack)
+        }).catch((err) => {
+            console.log('err in Share Screen :>> ', err);
+        })
+    }
 
 
     const answerCall = () => {
@@ -52,7 +103,7 @@ const  ContextProvider = ({ children }) => {
 
         peer.signal(call.signal)
 
-
+        setCurrentPeer(peer.peerConnection)
         connectionRef.current = peer
     }
 
@@ -73,6 +124,9 @@ const  ContextProvider = ({ children }) => {
             peer.signal(signal)
         })
 
+        setCurrentPeer(peer.peerConnection)
+
+
         connectionRef.current = peer
     }
 
@@ -86,7 +140,7 @@ const  ContextProvider = ({ children }) => {
 
     return (
         <SocketContext.Provider value={{
-            call, callAccepted, callEnded, myVideo, callerVideo, stream, name, setName, me, callUser, leaveCall, answerCall
+            call, callAccepted, callEnded, myVideo, callerVideo, stream, name, setName, me, callUser, leaveCall, answerCall, shareScreen
         }}>
             {children}
         </SocketContext.Provider>
